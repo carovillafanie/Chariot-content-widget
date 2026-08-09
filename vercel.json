@@ -6,6 +6,10 @@
         {
           "key": "Content-Security-Policy",
           "value": "frame-ancestors 'self' https://www.notion.so *;"
+        },
+        {
+          "key": "X-Debug-Test",
+          "value": "hola-caro-123"
         }
       ]
     }
