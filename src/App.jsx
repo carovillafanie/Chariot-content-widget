@@ -1,83 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { ChevronLeft, ChevronRight, X, Calendar, ExternalLink } from "lucide-react";
 
-// ─────────────────────────────────────────────────────────────
-// DATOS DE PRUEBA — esto es lo único que se reemplaza cuando
-// conectemos la base de datos real de Notion. La forma (shape)
-// de cada objeto es el "contrato" que la función intermedia
-// va a tener que respetar al traducir desde Notion.
-// ─────────────────────────────────────────────────────────────
-const PLACEHOLDER_CONTENT = [
-  {
-    id: "1",
-    nombre: "Reel — Rutina de skincare AM",
-    fecha: "2026-08-11",
-    canvaUrl: "https://www.canva.com/design/example1",
-    slides: [
-      "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800",
-      "https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?w=800",
-      "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=800",
-    ],
-    tipo: "Reel",
-  },
-  {
-    id: "2",
-    nombre: "Carrusel — 5 tips de hidratación",
-    fecha: "2026-08-13",
-    canvaUrl: "https://www.canva.com/design/example2",
-    slides: [
-      "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800",
-      "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800",
-      "https://images.unsplash.com/photo-1571875257727-256c39da42af?w=800",
-      "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=800",
-    ],
-    tipo: "Carrusel",
-  },
-  {
-    id: "3",
-    nombre: "Estático — Testimonio cliente",
-    fecha: "2026-08-15",
-    canvaUrl: "https://www.canva.com/design/example3",
-    slides: [
-      "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=800",
-    ],
-    tipo: "Estático",
-  },
-  {
-    id: "4",
-    nombre: "Reel — Detrás de cámara producción",
-    fecha: "2026-08-18",
-    canvaUrl: "https://www.canva.com/design/example4",
-    slides: [
-      "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=800",
-      "https://images.unsplash.com/photo-1512418490979-92798cec1380?w=800",
-    ],
-    tipo: "Reel",
-  },
-  {
-    id: "5",
-    nombre: "Carrusel — Antes y después",
-    fecha: "2026-08-20",
-    canvaUrl: "https://www.canva.com/design/example5",
-    slides: [
-      "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800",
-      "https://images.unsplash.com/photo-1598440947619-2c35bc9430c0?w=800",
-      "https://images.unsplash.com/photo-1610970881699-44a5587cabec?w=800",
-    ],
-    tipo: "Carrusel",
-  },
-  {
-    id: "6",
-    nombre: "Estático — Cita inspiracional",
-    fecha: "2026-08-22",
-    canvaUrl: "https://www.canva.com/design/example6",
-    slides: [
-      "https://images.unsplash.com/photo-1483412033650-1015ddeb83d1?w=800",
-    ],
-    tipo: "Estático",
-  },
-];
-
 const TIPO_COLOR = {
   Reel: "#C9A87C",
   Carrusel: "#7C9A92",
@@ -125,16 +48,35 @@ function Slider({ item, onClose }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ position: "relative", background: "#111" }}>
-          <img
-            src={item.slides[index]}
-            alt={`${item.nombre} — slide ${index + 1}`}
-            style={{
-              width: "100%",
-              aspectRatio: "4/5",
-              objectFit: "cover",
-              display: "block",
-            }}
-          />
+          {item.slides.length > 0 ? (
+            <img
+              src={item.slides[index]}
+              alt={`${item.nombre} — slide ${index + 1}`}
+              style={{
+                width: "100%",
+                aspectRatio: "4/5",
+                objectFit: "cover",
+                display: "block",
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: "100%",
+                aspectRatio: "4/5",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#5A564E",
+                fontSize: "11px",
+                fontFamily: "'IBM Plex Mono', monospace",
+                textAlign: "center",
+                padding: "0 24px",
+              }}
+            >
+              Sin imagen todavía
+            </div>
+          )}
           {hasMultiple && (
             <>
               <button
@@ -243,23 +185,25 @@ function Slider({ item, onClose }) {
           >
             {item.nombre}
           </h3>
-          <a
-            href={item.canvaUrl}
-            target="_blank"
-            rel="noreferrer"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              fontSize: "12px",
-              color: "#2B2620",
-              textDecoration: "none",
-              borderBottom: "1px solid #2B2620",
-              paddingBottom: "1px",
-            }}
-          >
-            Abrir en Canva <ExternalLink size={11} />
-          </a>
+          {item.canvaUrl && (
+            <a
+              href={item.canvaUrl}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "12px",
+                color: "#2B2620",
+                textDecoration: "none",
+                borderBottom: "1px solid #2B2620",
+                paddingBottom: "1px",
+              }}
+            >
+              Abrir en Canva <ExternalLink size={11} />
+            </a>
+          )}
         </div>
       </div>
     </div>
@@ -286,14 +230,73 @@ function navBtnStyle(side) {
 
 export default function ContentGridWidget() {
   const [selected, setSelected] = useState(null);
+  const [items, setItems] = useState([]);
+  const [status, setStatus] = useState("loading"); // loading | ok | error
+  const [errorDetail, setErrorDetail] = useState("");
+
+  React.useEffect(() => {
+    fetch("/api/content")
+      .then(async (r) => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || "Error desconocido");
+        setItems(data.items || []);
+        setStatus("ok");
+      })
+      .catch((err) => {
+        setErrorDetail(String(err.message || err));
+        setStatus("error");
+      });
+  }, []);
 
   const sorted = useMemo(
     () =>
-      [...PLACEHOLDER_CONTENT].sort(
-        (a, b) => new Date(a.fecha) - new Date(b.fecha)
-      ),
-    []
+      [...items]
+        .filter((i) => i.fecha)
+        .sort((a, b) => new Date(a.fecha) - new Date(b.fecha)),
+    [items]
   );
+
+  if (status === "loading") {
+    return (
+      <div
+        style={{
+          fontFamily: "'IBM Plex Mono', monospace",
+          background: "#FAF7F2",
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "#8A8478",
+          fontSize: "13px",
+        }}
+      >
+        Cargando contenido desde Notion…
+      </div>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <div
+        style={{
+          fontFamily: "'IBM Plex Mono', monospace",
+          background: "#FAF7F2",
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "24px",
+        }}
+      >
+        <div style={{ maxWidth: "480px", color: "#8A3A2E", fontSize: "13px" }}>
+          No se pudo conectar con Notion.
+          <div style={{ marginTop: "8px", color: "#5A564E", fontSize: "12px" }}>
+            {errorDetail}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
