@@ -10,12 +10,19 @@
 //    de columna en Notion.
 
 export default async function handler(req, res) {
-  const { NOTION_TOKEN, NOTION_DATABASE_ID } = process.env;
+  const { NOTION_TOKEN, NOTION_DATABASE_ID: DEFAULT_DB } = process.env;
+
+  // El ID de la base se puede pasar por URL (?db=...) para reusar este
+  // mismo widget con distintos clientes sin desplegar nada nuevo.
+  // Si no viene por query, usa la variable de entorno como fallback
+  // (así el link de Malva que ya está en producción sigue funcionando
+  // sin cambios).
+  const NOTION_DATABASE_ID = req.query.db || DEFAULT_DB;
 
   if (!NOTION_TOKEN || !NOTION_DATABASE_ID) {
-    return res.status(500).json({
+    return res.status(400).json({
       error:
-        "Faltan variables de entorno NOTION_TOKEN o NOTION_DATABASE_ID en Vercel.",
+        "Falta el ID de la base de datos. Pasalo por URL (?db=ID_DE_LA_BASE) o configurá NOTION_DATABASE_ID en Vercel.",
     });
   }
 

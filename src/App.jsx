@@ -235,7 +235,16 @@ export default function ContentGridWidget() {
   const [errorDetail, setErrorDetail] = useState("");
 
   React.useEffect(() => {
-    fetch("/api/content")
+    // Reenvía el ?db=... de la URL de la página (si existe) hacia la
+    // función serverless, para que cada cliente vea su propia base
+    // usando el mismo widget desplegado una sola vez.
+    const params = new URLSearchParams(window.location.search);
+    const dbParam = params.get("db");
+    const url = dbParam
+      ? `/api/content?db=${encodeURIComponent(dbParam)}`
+      : "/api/content";
+
+    fetch(url)
       .then(async (r) => {
         const data = await r.json();
         if (!r.ok) throw new Error(data.error || "Error desconocido");
