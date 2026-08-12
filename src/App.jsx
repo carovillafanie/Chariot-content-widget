@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, X, Calendar, ExternalLink } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Calendar, ExternalLink, RefreshCw } from "lucide-react";
 
 const TIPO_COLOR = {
   Reel: "#C9A87C",
@@ -19,9 +19,17 @@ function formatFecha(fechaStr) {
 function Slider({ item, onClose }) {
   const [index, setIndex] = useState(0);
   const hasMultiple = item.slides.length > 1;
+  const isFirst = index === 0;
+  const isLast = index === item.slides.length - 1;
 
-  const next = () => setIndex((i) => (i + 1) % item.slides.length);
-  const prev = () => setIndex((i) => (i - 1 + item.slides.length) % item.slides.length);
+  const next = () => {
+    if (isLast) return;
+    setIndex((i) => i + 1);
+  };
+  const prev = () => {
+    if (isFirst) return;
+    setIndex((i) => i - 1);
+  };
 
   return (
     <div
@@ -81,15 +89,17 @@ function Slider({ item, onClose }) {
             <>
               <button
                 onClick={prev}
+                disabled={isFirst}
                 aria-label="Slide anterior"
-                style={navBtnStyle("left")}
+                style={navBtnStyle("left", isFirst)}
               >
                 <ChevronLeft size={20} color="#FAF7F2" />
               </button>
               <button
                 onClick={next}
+                disabled={isLast}
                 aria-label="Slide siguiente"
-                style={navBtnStyle("right")}
+                style={navBtnStyle("right", isLast)}
               >
                 <ChevronRight size={20} color="#FAF7F2" />
               </button>
@@ -210,7 +220,7 @@ function Slider({ item, onClose }) {
   );
 }
 
-function navBtnStyle(side) {
+function navBtnStyle(side, disabled) {
   return {
     position: "absolute",
     top: "50%",
@@ -224,7 +234,8 @@ function navBtnStyle(side) {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    cursor: "pointer",
+    cursor: disabled ? "default" : "pointer",
+    opacity: disabled ? 0.25 : 1,
   };
 }
 
@@ -233,8 +244,9 @@ export default function ContentGridWidget() {
   const [items, setItems] = useState([]);
   const [status, setStatus] = useState("loading"); // loading | ok | error
   const [errorDetail, setErrorDetail] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
 
-  React.useEffect(() => {
+  const fetchData = React.useCallback((isManualRefresh) => {
     // Reenvía el ?db=... de la URL de la página (si existe) hacia la
     // función serverless, para que cada cliente vea su propia base
     // usando el mismo widget desplegado una sola vez.
@@ -243,6 +255,8 @@ export default function ContentGridWidget() {
     const url = dbParam
       ? `/api/content?db=${encodeURIComponent(dbParam)}`
       : "/api/content";
+
+    if (isManualRefresh) setRefreshing(true);
 
     fetch(url)
       .then(async (r) => {
@@ -254,14 +268,21 @@ export default function ContentGridWidget() {
       .catch((err) => {
         setErrorDetail(String(err.message || err));
         setStatus("error");
+      })
+      .finally(() => {
+        if (isManualRefresh) setRefreshing(false);
       });
   }, []);
+
+  React.useEffect(() => {
+    fetchData(false);
+  }, [fetchData]);
 
   const sorted = useMemo(
     () =>
       [...items]
         .filter((i) => i.fecha)
-        .sort((a, b) => new Date(a.fecha) - new Date(b.fecha)),
+        .sort((a, b) => new Date(b.fecha) - new Date(a.fecha)),
     [items]
   );
 
@@ -316,37 +337,54 @@ export default function ContentGridWidget() {
         padding: "32px 20px",
       }}
     >
+      <style>{`
+        .chariot-grid-cell:hover .chariot-name-overlay {
+          opacity: 1 !important;
+        }
+        @keyframes chariot-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
       <div style={{ maxWidth: "780px", margin: "0 auto" }}>
-        <div style={{ marginBottom: "28px" }}>
-          <div
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            marginBottom: "10px",
+          }}
+        >
+          <button
+            onClick={() => fetchData(true)}
+            disabled={refreshing}
+            aria-label="Refrescar contenido"
             style={{
-              fontSize: "11px",
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              color: "#8A8478",
-              fontFamily: "'IBM Plex Mono', monospace",
-              marginBottom: "4px",
+              width: "34px",
+              height: "34px",
+              borderRadius: "9px",
+              border: "1px solid #E4E0D8",
+              background: "#FFFFFF",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: refreshing ? "default" : "pointer",
             }}
           >
-            Chariot · Calendario de contenido
-          </div>
-          <h1
-            style={{
-              fontSize: "26px",
-              fontWeight: 500,
-              color: "#2B2620",
-              margin: 0,
-            }}
-          >
-            Próximas publicaciones
-          </h1>
+            <RefreshCw
+              size={15}
+              color="#5A564E"
+              style={{
+                animation: refreshing ? "chariot-spin 0.8s linear infinite" : "none",
+              }}
+            />
+          </button>
         </div>
 
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
-            gap: "14px",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: "2px",
           }}
         >
           {sorted.map((item) => (
@@ -363,9 +401,9 @@ export default function ContentGridWidget() {
               }}
             >
               <div
+                className="chariot-grid-cell"
                 style={{
                   position: "relative",
-                  borderRadius: "3px",
                   overflow: "hidden",
                   background: "#111",
                 }}
@@ -397,26 +435,30 @@ export default function ContentGridWidget() {
                     1/{item.slides.length}
                   </div>
                 )}
-              </div>
-              <div style={{ marginTop: "7px" }}>
                 <div
+                  className="chariot-name-overlay"
                   style={{
-                    fontSize: "10px",
-                    fontFamily: "'IBM Plex Mono', monospace",
-                    color: TIPO_COLOR[item.tipo] || "#8A8478",
-                    marginBottom: "2px",
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    alignItems: "flex-end",
+                    padding: "10px",
+                    background:
+                      "linear-gradient(to top, rgba(20,18,15,0.75) 0%, rgba(20,18,15,0) 55%)",
+                    opacity: 0,
+                    transition: "opacity 0.15s ease",
                   }}
                 >
-                  {formatFecha(item.fecha)}
-                </div>
-                <div
-                  style={{
-                    fontSize: "13px",
-                    color: "#2B2620",
-                    lineHeight: 1.3,
-                  }}
-                >
-                  {item.nombre}
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      color: "#FAF7F2",
+                      lineHeight: 1.3,
+                      fontFamily: "'Newsreader', Georgia, serif",
+                    }}
+                  >
+                    {item.nombre}
+                  </span>
                 </div>
               </div>
             </button>
