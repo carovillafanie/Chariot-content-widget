@@ -360,14 +360,15 @@ export default function ContentGridWidget() {
             disabled={refreshing}
             aria-label="Refrescar contenido"
             style={{
-              width: "34px",
               height: "34px",
+              padding: "0 14px",
               borderRadius: "9px",
               border: "1px solid #E4E0D8",
               background: "#FFFFFF",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              gap: "7px",
               cursor: refreshing ? "default" : "pointer",
             }}
           >
@@ -376,8 +377,18 @@ export default function ContentGridWidget() {
               color="#5A564E"
               style={{
                 animation: refreshing ? "chariot-spin 0.8s linear infinite" : "none",
+                flexShrink: 0,
               }}
             />
+            <span
+              style={{
+                fontSize: "12px",
+                fontFamily: "'IBM Plex Mono', monospace",
+                color: "#5A564E",
+              }}
+            >
+              Refrescar
+            </span>
           </button>
         </div>
 
