@@ -334,7 +334,7 @@ export default function ContentGridWidget() {
         fontFamily: "'Newsreader', Georgia, serif",
         background: "#FAF7F2",
         minHeight: "100vh",
-        padding: "32px 20px",
+        padding: "16px 0",
       }}
     >
       <style>{`
@@ -346,12 +346,13 @@ export default function ContentGridWidget() {
           to { transform: rotate(360deg); }
         }
       `}</style>
-      <div style={{ maxWidth: "780px", margin: "0 auto" }}>
+      <div style={{ width: "100%" }}>
         <div
           style={{
             display: "flex",
             justifyContent: "flex-end",
             marginBottom: "10px",
+            padding: "0 10px",
           }}
         >
           <button
@@ -406,14 +407,18 @@ export default function ContentGridWidget() {
                   position: "relative",
                   overflow: "hidden",
                   background: "#111",
+                  aspectRatio: "1080 / 1350",
+                  width: "100%",
                 }}
               >
                 <img
                   src={item.slides[0]}
                   alt={item.nombre}
                   style={{
+                    position: "absolute",
+                    inset: 0,
                     width: "100%",
-                    aspectRatio: "4/5",
+                    height: "100%",
                     objectFit: "cover",
                     display: "block",
                   }}
