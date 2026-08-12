@@ -9,6 +9,41 @@
 //    una sola vez, sin tocar el widget cada vez que cambia un nombre
 //    de columna en Notion.
 
+// Convierte un link "de ver" de Google Drive al formato que se puede
+// embeber en un iframe, y arma la URL de miniatura automática que
+// genera Drive para cualquier video subido.
+function parseDriveLink(url) {
+  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+  const fileId = match ? match[1] : null;
+  if (!fileId) return { embedUrl: url, thumbnailUrl: null };
+  return {
+    embedUrl: `https://drive.google.com/file/d/${fileId}/preview`,
+    thumbnailUrl: `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`,
+  };
+}
+
+// Le pide a Canva la página pública de "compartir" y le saca la miniatura
+// de portada (etiqueta og:image), que es lo único que Canva expone sin
+// necesitar autenticación. No trae las slides individuales — Canva no
+// las expone así; para eso hay que abrir el diseño (se hace en el modal).
+async function getCanvaThumbnail(url) {
+  try {
+    const r = await fetch(url, { redirect: "follow" });
+    const html = await r.text();
+    const match = html.match(/<meta property="og:image" content="([^"]+)"/);
+    return match ? match[1] : null;
+  } catch {
+    return null; // si falla, el widget muestra la celda sin imagen, no rompe
+  }
+}
+
+function buildCanvaEmbedUrl(url) {
+  // Agrega el parámetro que hace que Canva muestre el visor embebible
+  // (con su propio navegador de slides) en vez de intentar abrir el editor.
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}embed`;
+}
+
 export default async function handler(req, res) {
   const { NOTION_TOKEN, NOTION_DATABASE_ID: DEFAULT_DB } = process.env;
 
@@ -50,31 +85,58 @@ export default async function handler(req, res) {
 
     const data = await notionRes.json();
 
-    // ─── MAPEO — acá se traduce lo que hay en la base real de Malva ───
-    // "Todos los posteos" (title) -> nombre
-    // "Se postea" (date)          -> fecha
-    // No existe todavía un campo de imagen/Canva, así que slides queda
-    // vacío a propósito: el widget tiene que poder mostrar eso sin romperse.
-    const items = (data.results || []).map((page) => {
-      const props = page.properties || {};
+    // ─── MAPEO — acá se traduce lo que hay en la base real ───
+    // "Todos los posteos" (title)   -> nombre
+    // "Se postea" (date)            -> fecha
+    // "Tipo de recurso" (select)    -> recursoTipo: Canva / Imagen / Video
+    // "Link del diseño" (url)       -> según recursoTipo, se procesa distinto
+    //
+    // Las páginas de tipo Canva necesitan una consulta extra (traer la
+    // miniatura), por eso se procesan todas en paralelo con Promise.all
+    // en vez de una por una — más rápido cuando hay varias filas.
+    const items = await Promise.all(
+      (data.results || []).map(async (page) => {
+        const props = page.properties || {};
 
-      const nombre =
-        props["Todos los posteos"]?.title?.[0]?.plain_text?.trim() ||
-        "(Sin nombre)";
+        const nombre =
+          props["Todos los posteos"]?.title?.[0]?.plain_text?.trim() ||
+          "(Sin nombre)";
+        const fecha = props["Se postea"]?.date?.start || null;
+        const formato = props["Formato"]?.select?.name || null;
+        const recursoTipo = props["Tipo de recurso"]?.select?.name || null;
+        const link = props["Link del diseño"]?.url || null;
 
-      const fecha = props["Se postea"]?.date?.start || null;
+        let slides = [];
+        let modalTipo = "imagen"; // imagen | canva | video
+        let embedUrl = null;
 
-      const formato = props["Formato"]?.select?.name || null;
+        if (link && recursoTipo === "Imagen") {
+          slides = [link];
+          modalTipo = "imagen";
+        } else if (link && recursoTipo === "Canva") {
+          const thumb = await getCanvaThumbnail(link);
+          slides = thumb ? [thumb] : [];
+          modalTipo = "canva";
+          embedUrl = buildCanvaEmbedUrl(link);
+        } else if (link && recursoTipo === "Video") {
+          const { embedUrl: driveEmbed, thumbnailUrl } = parseDriveLink(link);
+          slides = thumbnailUrl ? [thumbnailUrl] : [];
+          modalTipo = "video";
+          embedUrl = driveEmbed;
+        }
 
-      return {
-        id: page.id,
-        nombre,
-        fecha,
-        tipo: formato,
-        canvaUrl: null, // no existe el campo todavía
-        slides: [], // vacío a propósito — el widget debe mostrar un placeholder
-      };
-    });
+        return {
+          id: page.id,
+          nombre,
+          fecha,
+          tipo: formato,
+          recursoTipo,
+          modalTipo,
+          embedUrl,
+          slides,
+        };
+      })
+    );
 
     res.status(200).json({ items });
   } catch (err) {

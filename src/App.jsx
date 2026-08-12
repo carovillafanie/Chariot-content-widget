@@ -56,7 +56,32 @@ function Slider({ item, onClose }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ position: "relative", background: "#111" }}>
-          {item.slides.length > 0 ? (
+          {item.modalTipo === "canva" && item.embedUrl ? (
+            <iframe
+              src={item.embedUrl}
+              title={item.nombre}
+              allowFullScreen
+              style={{
+                width: "100%",
+                aspectRatio: "4/5",
+                border: "none",
+                display: "block",
+              }}
+            />
+          ) : item.modalTipo === "video" && item.embedUrl ? (
+            <iframe
+              src={item.embedUrl}
+              title={item.nombre}
+              allow="autoplay"
+              allowFullScreen
+              style={{
+                width: "100%",
+                aspectRatio: "4/5",
+                border: "none",
+                display: "block",
+              }}
+            />
+          ) : item.slides.length > 0 ? (
             <img
               src={item.slides[index]}
               alt={`${item.nombre} — slide ${index + 1}`}
@@ -85,7 +110,7 @@ function Slider({ item, onClose }) {
               Sin imagen todavía
             </div>
           )}
-          {hasMultiple && (
+          {hasMultiple && item.modalTipo === "imagen" && (
             <>
               <button
                 onClick={prev}
@@ -195,9 +220,9 @@ function Slider({ item, onClose }) {
           >
             {item.nombre}
           </h3>
-          {item.canvaUrl && (
+          {item.embedUrl && (item.modalTipo === "canva" || item.modalTipo === "video") && (
             <a
-              href={item.canvaUrl}
+              href={item.embedUrl.replace("?embed", "").replace("&embed", "")}
               target="_blank"
               rel="noreferrer"
               style={{
@@ -211,7 +236,7 @@ function Slider({ item, onClose }) {
                 paddingBottom: "1px",
               }}
             >
-              Abrir en Canva <ExternalLink size={11} />
+              Abrir {item.modalTipo === "canva" ? "en Canva" : "en Drive"} <ExternalLink size={11} />
             </a>
           )}
         </div>
